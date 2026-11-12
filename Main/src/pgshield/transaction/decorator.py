@@ -34,6 +34,49 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
+def _build_policy(
+    policy: Optional[RetryPolicy],
+    *,
+    max_attempts: Optional[int],
+    base_delay: Optional[float],
+    max_delay: Optional[float],
+    backoff_factor: Optional[float],
+    jitter: Optional[bool],
+    retryable_sqlstates: Optional[Set[str]],
+) -> RetryPolicy:
+    """Resolve a RetryPolicy from an explicit policy or shorthand keyword overrides."""
+    if policy is not None:
+        return policy
+
+    overrides: dict[str, Any] = {
+        key: value
+        for key, value in (
+            ("max_attempts", max_attempts),
+            ("base_delay", base_delay),
+            ("max_delay", max_delay),
+            ("backoff_factor", backoff_factor),
+            ("jitter", jitter),
+            ("retryable_sqlstates", retryable_sqlstates),
+        )
+        if value is not None
+    }
+    return RetryPolicy(**overrides)
+
+
+def _wrap_with_runner(
+    target_fn: Callable[P, Awaitable[R]],
+    runner: TransactionRunner,
+) -> Callable[P, Awaitable[R]]:
+    """Wrap an async callable so every call executes via `runner.run(...)`."""
+
+    @functools.wraps(target_fn)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        return await runner.run(functools.partial(target_fn, *args, **kwargs))
+
+    setattr(wrapper, "__pgshield_runner__", runner)
+    return wrapper
+
+
 @overload
 def transaction(
     fn: Callable[P, Awaitable[R]],
@@ -114,66 +157,34 @@ def transaction(
     Returns:
         The wrapped async function.
     """
-
-    def decorator(target_fn: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
-        effective_runner: TransactionRunner
-        if runner is not None:
-            effective_runner = runner
-        else:
-            effective_policy: RetryPolicy
-            if policy is not None:
-                effective_policy = policy
-            elif any(
-                x is not None
-                for x in (
-                    max_attempts,
-                    base_delay,
-                    max_delay,
-                    backoff_factor,
-                    jitter,
-                    retryable_sqlstates,
-                )
-            ):
-                policy_kwargs: dict[str, Any] = {}
-                if max_attempts is not None:
-                    policy_kwargs["max_attempts"] = max_attempts
-                if base_delay is not None:
-                    policy_kwargs["base_delay"] = base_delay
-                if max_delay is not None:
-                    policy_kwargs["max_delay"] = max_delay
-                if backoff_factor is not None:
-                    policy_kwargs["backoff_factor"] = backoff_factor
-                if jitter is not None:
-                    policy_kwargs["jitter"] = jitter
-                if retryable_sqlstates is not None:
-                    policy_kwargs["retryable_sqlstates"] = retryable_sqlstates
-                effective_policy = RetryPolicy(**policy_kwargs)
-            else:
-                effective_policy = RetryPolicy()
-
-            effective_runner = TransactionRunner(
-                policy=effective_policy,
-                adapter=adapter,
-                logger=logger,
-                metrics=metrics,
-                diagnostics=diagnostics,
-                sleep_func=sleep_func,
-                random_func=random_func,
-                custom_extractor=custom_extractor,
-            )
-
-        @functools.wraps(target_fn)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            async def _operation() -> R:
-                return await target_fn(*args, **kwargs)
-
-            return await effective_runner.run(_operation)
-
-        setattr(wrapper, "__pgshield_runner__", effective_runner)
-        return wrapper
+    effective_runner = (
+        runner
+        if runner is not None
+        else TransactionRunner(
+            policy=_build_policy(
+                policy,
+                max_attempts=max_attempts,
+                base_delay=base_delay,
+                max_delay=max_delay,
+                backoff_factor=backoff_factor,
+                jitter=jitter,
+                retryable_sqlstates=retryable_sqlstates,
+            ),
+            adapter=adapter,
+            logger=logger,
+            metrics=metrics,
+            diagnostics=diagnostics,
+            sleep_func=sleep_func,
+            random_func=random_func,
+            custom_extractor=custom_extractor,
+        )
+    )
 
     if fn is not None:
-        return decorator(fn)
+        return _wrap_with_runner(fn, effective_runner)
+
+    def decorator(target_fn: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]:
+        return _wrap_with_runner(target_fn, effective_runner)
 
     return decorator
 
