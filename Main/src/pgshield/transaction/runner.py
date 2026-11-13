@@ -149,6 +149,11 @@ class TransactionRunner:
             custom_extractor: Optional callable to extract SQLSTATE from custom exceptions.
         """
         self._policy = policy if policy is not None else RetryPolicy()
+        if adapter is not None and not isinstance(adapter, TransactionAdapter):
+            raise TypeError(
+                f"Expected adapter implementing TransactionAdapter, got {type(adapter).__name__}. "
+                "Did you forget to wrap your connection (e.g. AsyncpgConnectionAdapter(conn))?"
+            )
         self._default_adapter = adapter
         self._logger = logger if logger is not None else TransactionLogger(enabled=False)
         self._metrics = metrics if metrics is not None else NullMetricsCollector()
@@ -229,6 +234,11 @@ class TransactionRunner:
         Returns:
             A TransactionResult containing the returned value and full attempt history.
         """
+        if adapter is not None and not isinstance(adapter, TransactionAdapter):
+            raise TypeError(
+                f"Expected adapter implementing TransactionAdapter, got {type(adapter).__name__}. "
+                "Did you forget to wrap your connection (e.g. AsyncpgConnectionAdapter(conn))?"
+            )
         active_adapter = adapter if adapter is not None else self._default_adapter
         overall_start_time = time.monotonic()
 

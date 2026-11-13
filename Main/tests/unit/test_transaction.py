@@ -349,3 +349,15 @@ class TestTransactionRunner:
         assert fake_adapter.commits == 1
         assert fake_adapter.rollbacks == 1  # Clean rollback attempted after commit failure
         assert len(sleeper.delays) == 0  # No backoff delay
+
+    def test_invalid_adapter_raises_type_error_in_init(self):
+        """Objects not satisfying TransactionAdapter raise TypeError in __init__."""
+        with pytest.raises(TypeError, match="Expected adapter implementing TransactionAdapter"):
+            TransactionRunner(adapter="not_an_adapter")  # type: ignore[arg-type]
+
+    @pytest.mark.asyncio
+    async def test_invalid_adapter_raises_type_error_in_run(self):
+        """Passing an invalid adapter override to run() raises TypeError."""
+        runner = TransactionRunner()
+        with pytest.raises(TypeError, match="Expected adapter implementing TransactionAdapter"):
+            await runner.run(lambda: None, adapter="not_an_adapter")  # type: ignore[arg-type]
