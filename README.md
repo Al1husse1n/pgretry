@@ -26,6 +26,7 @@ PGShield provides a robust, decoupled layer that automates whole-transaction ret
 - [Supported Integrations](#supported-integrations)
   - [SQLAlchemy (`AsyncSession`)](#sqlalchemy-asyncsession)
   - [asyncpg (`asyncpg.Connection`)](#asyncpg-asyncpgconnection)
+  - [Custom Driver Adapters (e.g. `psycopg3`)](#custom-driver-adapters-eg-psycopg3)
 - [Diagnostics Subsystem & QueryExecutor](#diagnostics-subsystem--queryexecutor)
   - [Application vs. Diagnostic Execution](#application-vs-diagnostic-execution)
   - [The QueryExecutor Protocol](#the-queryexecutor-protocol)
@@ -492,6 +493,59 @@ async def transfer_credits(
         metadata={"transaction_id": f"transfer-{sender_id}-to-{recipient_id}"},
     )
 ```
+
+### Custom Driver Adapters (e.g. `psycopg3`)
+
+PGShield is deliberately decoupled from any single database driver via the `@runtime_checkable` `TransactionAdapter` protocol. If you use a driver that does not have a bundled helper—such as **psycopg 3 (`psycopg.AsyncConnection`)**, custom connection pools, or proxy wrappers—you can write your own adapter in ~20 lines of code.
+
+#### Why and When to Create a Custom Adapter
+
+* **Driver Flexibility without Waiting for Releases:** You do not need to wait for PGShield to bundle support for your driver or internal connection abstraction.
+* **Automatic SQLSTATE Classification:** PGShield's error classifier natively inspects exception hierarchies from `psycopg` and `psycopg2` (`error.sqlstate` / `error.pgcode`). Concurrency aborts (`40001` serialization failure, `40P01` deadlock detected) are automatically classified as retryable without writing a custom error extractor.
+* **Fail-Fast Validation:** `TransactionRunner` validates that your adapter implements `TransactionAdapter` via runtime `isinstance` checks at initialization, raising `TypeError` immediately if an unadapted connection is passed.
+
+#### Minimal Example: `psycopg 3` Async Adapter
+
+```python
+import contextlib
+from typing import Any
+import psycopg
+from pgshield.transaction import TransactionAdapter, TransactionRunner
+
+class PsycopgConnectionAdapter(TransactionAdapter):
+    """Adapts a psycopg 3 AsyncConnection to PGShield's TransactionAdapter protocol."""
+
+    def __init__(self, connection: psycopg.AsyncConnection[Any]) -> None:
+        self._connection = connection
+        self._tx: psycopg.AsyncTransaction | None = None
+
+    async def begin(self) -> None:
+        """Create and start a new transaction boundary on the connection."""
+        if self._tx is not None:
+            await self.rollback()
+        self._tx = self._connection.transaction()
+        await self._tx.__aenter__()
+
+    async def commit(self) -> None:
+        """Commit the active transaction boundary."""
+        if self._tx is not None:
+            await self._tx.__aexit__(None, None, None)
+            self._tx = None
+
+    async def rollback(self) -> None:
+        """Roll back the active transaction boundary."""
+        if self._tx is not None:
+            with contextlib.suppress(Exception):
+                await self._tx.__aexit__(Exception, Exception("PGShield rollback"), None)
+            self._tx = None
+
+# Pass directly to TransactionRunner:
+# runner = TransactionRunner(adapter=PsycopgConnectionAdapter(conn))
+# result = await runner.run(my_async_callable)
+```
+
+> [!TIP]
+> **Complete Runnable Example:** See [examples/custom_adapter_psycopg.py](examples/custom_adapter_psycopg.py) for a complete, self-contained demonstration including database table creation, balance transfers, and automated retries using psycopg 3.
 
 ---
 
@@ -1407,6 +1461,7 @@ PGShield is engineered for a predictable developer experience and strict typing:
   export PGSHIELD_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
   python examples/sqlalchemy_transfer.py
   python examples/asyncpg_transfer.py
+  python examples/custom_adapter_psycopg.py  # Custom psycopg 3 adapter
   ```
 
 * **Packaging & Local Builds:** Standard PEP 517/621 builds can be generated and validated locally:
