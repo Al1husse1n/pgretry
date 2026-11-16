@@ -1,6 +1,6 @@
 """Unit tests for PostgreSQL error introspection and normalization."""
 
-from pgshield.postgres.errors import (
+from pgretry.postgres.errors import (
     SQLSTATE_CONNECTION_FAILURE,
     SQLSTATE_DEADLOCK_DETECTED,
     SQLSTATE_LOCK_NOT_AVAILABLE,

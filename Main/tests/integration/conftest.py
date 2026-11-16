@@ -1,4 +1,4 @@
-"""Pytest fixtures for PGShield real PostgreSQL integration tests."""
+"""Pytest fixtures for PGRetry real PostgreSQL integration tests."""
 
 import asyncio
 import os
@@ -13,10 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 @pytest.fixture
 def pg_dsn() -> str:
     """Provide the PostgreSQL test DSN from environment or skip if unavailable."""
-    if "PGSHIELD_TEST_DSN" not in os.environ:
-        pytest.skip("PGSHIELD_TEST_DSN not set; skipping integration tests")
-
-    dsn = os.environ["PGSHIELD_TEST_DSN"]
+    dsn = os.environ.get("PGRETRY_TEST_DSN") or os.environ.get("PGSHIELD_TEST_DSN")
+    if not dsn:
+        pytest.skip("PGRETRY_TEST_DSN not set; skipping integration tests")
 
     # Verify reachability
     async def _test_reachability() -> None:

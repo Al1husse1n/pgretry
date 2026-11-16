@@ -2,7 +2,7 @@
 
 import pytest
 
-from pgshield.postgres.locks import (
+from pgretry.postgres.locks import (
     LockInfo,
     build_locks_query,
     detect_blocking_chains,

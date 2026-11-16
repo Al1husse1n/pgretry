@@ -2,20 +2,20 @@
 
 import pytest
 
-from pgshield.postgres.diagnostics import (
+from pgretry.postgres.diagnostics import (
     DiagnosticCollector,
     DiagnosticMode,
     build_diagnostic_report,
     generate_explanation,
 )
-from pgshield.postgres.errors import (
+from pgretry.postgres.errors import (
     SQLSTATE_DEADLOCK_DETECTED,
     SQLSTATE_SERIALIZATION_FAILURE,
     SQLSTATE_UNIQUE_VIOLATION,
     PostgresErrorCategory,
     PostgresErrorDetails,
 )
-from pgshield.postgres.locks import BlockingRelationship, LockInfo
+from pgretry.postgres.locks import BlockingRelationship, LockInfo
 
 
 class DummyDriverException(Exception):

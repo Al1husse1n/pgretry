@@ -1,6 +1,6 @@
-"""End-to-end verification and integration test suite for PGShield.
+"""End-to-end verification and integration test suite for PGRetry.
 
-Validates the full PGShield concurrency toolkit across:
+Validates the full PGRetry concurrency toolkit across:
 - Test 1: Normal transaction execution (single attempt, commit, metrics/logs)
 - Test 2: 40001 serialization failure (rollback, backoff, replay, commit, retry metric)
 - Test 3: 40P01 deadlock detected (rollback, backoff, whole-operation replay, diagnostics)
@@ -19,7 +19,7 @@ from fastapi import FastAPI, HTTPException, status
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel
 
-from pgshield import (
+from pgretry import (
     DiagnosticCollector,
     DiagnosticMode,
     DiagnosticReport,
@@ -77,7 +77,7 @@ async def test_1_normal_transaction(caplog):
     caplog.set_level(logging.DEBUG)
     adapter = MockDbAdapter()
     metrics = InMemoryMetricsCollector()
-    raw_logger = logging.getLogger("test.pgshield.t1")
+    raw_logger = logging.getLogger("test.pgretry.t1")
     logger = TransactionLogger(raw_logger, enabled=True)
     sleeper = MockSleepRecorder()
 
@@ -127,7 +127,7 @@ async def test_2_serialization_failure_whole_operation_replay(caplog):
     caplog.set_level(logging.DEBUG)
     adapter = MockDbAdapter()
     metrics = InMemoryMetricsCollector()
-    logger = TransactionLogger(logging.getLogger("test.pgshield.t2"), enabled=True)
+    logger = TransactionLogger(logging.getLogger("test.pgretry.t2"), enabled=True)
     sleeper = MockSleepRecorder()
     policy = RetryPolicy(max_attempts=3, base_delay=0.05, jitter=False)
 
@@ -355,7 +355,7 @@ def test_7_diagnostics_report_and_ssi_distinction():
         else None
     )  # or via build_diagnostic_report
 
-    from pgshield.postgres.diagnostics import build_diagnostic_report
+    from pgretry.postgres.diagnostics import build_diagnostic_report
 
     # 40001 SSI Report
     report_ssi = build_diagnostic_report(error=err_40001, attempt=1, duration=0.05)
@@ -401,8 +401,8 @@ class TransferResponse(BaseModel):
 
 @pytest.mark.asyncio
 async def test_8_fastapi_endpoint_integration():
-    """Verify FastAPI route using PGShield for whole-transaction retries."""
-    app = FastAPI(title="PGShield Banking API")
+    """Verify FastAPI route using PGRetry for whole-transaction retries."""
+    app = FastAPI(title="PGRetry Banking API")
     metrics = InMemoryMetricsCollector()
     logger = TransactionLogger(logging.getLogger("fastapi.banking"), enabled=True)
     sleeper = MockSleepRecorder()

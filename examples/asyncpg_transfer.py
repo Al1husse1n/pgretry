@@ -1,10 +1,10 @@
-"""PGShield asyncpg Money Transfer Example.
+"""PGRetry asyncpg Money Transfer Example.
 
 Demonstrates executing a multi-statement financial transfer inside an atomic,
-retry-safe transaction boundary using PGShield's run_asyncpg_transaction helper.
+retry-safe transaction boundary using PGRetry's run_asyncpg_transaction helper.
 
 To run this example:
-    export PGSHIELD_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
+    export PGRETRY_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
     python examples/asyncpg_transfer.py
 """
 
@@ -13,15 +13,15 @@ import os
 import sys
 
 import asyncpg
-from pgshield import run_asyncpg_transaction
+from pgretry import run_asyncpg_transaction
 
 
 async def main() -> None:
-    dsn = os.environ.get("PGSHIELD_TEST_DSN")
+    dsn = os.environ.get("PGRETRY_TEST_DSN") or os.environ.get("PGSHIELD_TEST_DSN")
     if not dsn:
-        print("Error: PGSHIELD_TEST_DSN environment variable is not set.", file=sys.stderr)
+        print("Error: PGRETRY_TEST_DSN environment variable is not set.", file=sys.stderr)
         print(
-            "Example: export PGSHIELD_TEST_DSN="
+            "Example: export PGRETRY_TEST_DSN="
             "'postgresql://postgres:postgres@localhost:5432/postgres'",
             file=sys.stderr,
         )

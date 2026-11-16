@@ -1,7 +1,7 @@
-"""Integration tests against real PostgreSQL instance for PGShield.
+"""Integration tests against real PostgreSQL instance for PGRetry.
 
 All tests in this module execute against a live PostgreSQL database provided by
-the PGSHIELD_TEST_DSN environment variable. They are decorated with @pytest.mark.integration
+the PGRETRY_TEST_DSN environment variable. They are decorated with @pytest.mark.integration
 and are deselected by default during local unit test runs.
 """
 
@@ -13,19 +13,19 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pgshield.integrations.asyncpg import (
+from pgretry.integrations.asyncpg import (
     AsyncpgQueryExecutor,
     AsyncpgTransactionRunner,
     run_asyncpg_transaction,
 )
-from pgshield.integrations.sqlalchemy import (
+from pgretry.integrations.sqlalchemy import (
     run_sqlalchemy_transaction,
 )
-from pgshield.postgres.locks import (
+from pgretry.postgres.locks import (
     fetch_blocking_pids,
     fetch_locks_with_authoritative,
 )
-from pgshield.retry.policy import RetryPolicy
+from pgretry.retry.policy import RetryPolicy
 
 pytestmark = pytest.mark.integration
 
@@ -39,13 +39,13 @@ pytestmark = pytest.mark.integration
 async def test_real_postgres_asyncpg_successful_transaction(asyncpg_conn: asyncpg.Connection):
     """Verify transaction commit and query execution on real PostgreSQL using asyncpg."""
     await asyncpg_conn.execute(
-        "CREATE TEMP TABLE test_pgshield_items (id SERIAL PRIMARY KEY, val TEXT);"
+        "CREATE TEMP TABLE test_pgretry_items (id SERIAL PRIMARY KEY, val TEXT);"
     )
 
     async def insert_item(c: asyncpg.Connection) -> int:
         row = await c.fetchrow(
-            "INSERT INTO test_pgshield_items (val) VALUES ($1) RETURNING id;",
-            "hello_pgshield",
+            "INSERT INTO test_pgretry_items (val) VALUES ($1) RETURNING id;",
+            "hello_pgretry",
         )
         assert row is not None
         return row["id"]
@@ -53,7 +53,7 @@ async def test_real_postgres_asyncpg_successful_transaction(asyncpg_conn: asyncp
     item_id = await run_asyncpg_transaction(asyncpg_conn, insert_item)
     assert item_id is not None
 
-    count = await asyncpg_conn.fetchval("SELECT count(*) FROM test_pgshield_items;")
+    count = await asyncpg_conn.fetchval("SELECT count(*) FROM test_pgretry_items;")
     assert count == 1
 
 
@@ -92,7 +92,7 @@ async def test_40001_is_retried_to_success(pg_dsn: str):
     """(a) Two concurrent SERIALIZABLE transactions update the same row.
 
     One transaction deterministically receives SQLSTATE 40001 (serialization_failure),
-    and PGShield retries the loser until both transfers complete cleanly.
+    and PGRetry retries the loser until both transfers complete cleanly.
     Coroutines are deterministically synchronized using asyncio.Event.
     """
     conn_setup = await asyncpg.connect(pg_dsn)
@@ -171,7 +171,7 @@ async def test_40001_is_retried_to_success(pg_dsn: str):
 async def test_40p01_deadlock_is_retried_to_success(pg_dsn: str):
     """(b) Two concurrent transactions acquire locks in opposite order causing 40P01.
 
-    The loser receives 40P01 (deadlock_detected) and PGShield retries to success.
+    The loser receives 40P01 (deadlock_detected) and PGRetry retries to success.
     Coroutines are deterministically synchronized using asyncio.Event.
     """
     conn_setup = await asyncpg.connect(pg_dsn)
@@ -343,7 +343,7 @@ async def test_sqlalchemy_already_in_transaction_refused(sqlalchemy_session: Asy
     await sqlalchemy_session.begin()
 
     expected_msg = (
-        "PGShield cannot begin a transaction on a session that is already in a transaction. "
+        "PGRetry cannot begin a transaction on a session that is already in a transaction. "
         "Pass a session with no active transaction, "
         "or wrap your own boundary around a fresh session."
     )
@@ -365,7 +365,7 @@ async def test_asyncpg_already_in_transaction_refused(asyncpg_conn: asyncpg.Conn
     await tx.start()
 
     expected_msg = (
-        "PGShield cannot begin a transaction on an asyncpg connection "
+        "PGRetry cannot begin a transaction on an asyncpg connection "
         "that is already in a transaction. "
         "Acquire a fresh connection from your pool for each retryable operation, "
         "or wrap your own boundary."

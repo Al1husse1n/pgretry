@@ -1,4 +1,4 @@
-# PGShield Continuous Integration (CI) Workflow
+# PGRetry Continuous Integration (CI) Workflow
 # This workflow runs five distinct jobs: lint (blocking ruff check), type-check (strict mypy),
 # unit (isolated tests with no DB), integration (tests against a native GitHub Actions service container),
 # and compose (tests against docker-compose.yml).
@@ -55,7 +55,7 @@ jobs:
           poetry install
 
       - name: Run mypy
-        run: poetry run mypy src/pgshield
+        run: poetry run mypy src/pgretry
 
   unit:
     name: Unit Tests
@@ -107,7 +107,7 @@ jobs:
       run:
         working-directory: Main
     env:
-      PGSHIELD_TEST_DSN: "postgresql://postgres:postgres@localhost:5432/postgres"
+      PGRETRY_TEST_DSN: "postgresql://postgres:postgres@localhost:5432/postgres"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -157,7 +157,7 @@ jobs:
 
       - name: Run integration tests against Compose Postgres
         env:
-          PGSHIELD_TEST_DSN: "postgresql://postgres:postgres@localhost:5432/postgres"
+          PGRETRY_TEST_DSN: "postgresql://postgres:postgres@localhost:5432/postgres"
         run: pytest -q -m integration
         working-directory: Main
 

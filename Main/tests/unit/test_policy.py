@@ -4,8 +4,8 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-from pgshield.retry.classifier import DEFAULT_RETRYABLE_SQLSTATES
-from pgshield.retry.policy import RetryPolicy
+from pgretry.retry.classifier import DEFAULT_RETRYABLE_SQLSTATES
+from pgretry.retry.policy import RetryPolicy
 
 
 class TestRetryPolicy:

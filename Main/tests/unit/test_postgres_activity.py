@@ -2,7 +2,7 @@
 
 import pytest
 
-from pgshield.postgres.activity import (
+from pgretry.postgres.activity import (
     build_activity_query,
     fetch_activity,
     parse_activity_rows,

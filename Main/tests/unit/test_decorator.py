@@ -4,9 +4,9 @@ from typing import List
 
 import pytest
 
-from pgshield.retry.policy import RetryPolicy
-from pgshield.transaction.decorator import transaction, transactional
-from pgshield.transaction.runner import TransactionRunner
+from pgretry.retry.policy import RetryPolicy
+from pgretry.transaction.decorator import transaction, transactional
+from pgretry.transaction.runner import TransactionRunner
 
 
 class MockDatabaseError(Exception):

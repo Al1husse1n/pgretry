@@ -2,7 +2,7 @@
 
 import pytest
 
-from pgshield.instrumentation.metrics import (
+from pgretry.instrumentation.metrics import (
     InMemoryMetricsCollector,
     NullMetricsCollector,
 )

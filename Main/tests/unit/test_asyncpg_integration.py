@@ -1,4 +1,4 @@
-"""Unit tests for asyncpg driver integration in PGShield."""
+"""Unit tests for asyncpg driver integration in PGRetry."""
 
 from unittest.mock import AsyncMock, MagicMock
 
@@ -7,14 +7,14 @@ import asyncpg.exceptions
 import pytest
 from asyncpg.transaction import Transaction
 
-from pgshield.integrations.asyncpg import (
+from pgretry.integrations.asyncpg import (
     AsyncpgConnectionAdapter,
     AsyncpgQueryExecutor,
     AsyncpgTransactionRunner,
     extract_asyncpg_sqlstate,
     run_asyncpg_transaction,
 )
-from pgshield.retry.policy import RetryPolicy
+from pgretry.retry.policy import RetryPolicy
 
 
 class MockSleepRecorder:
@@ -63,7 +63,7 @@ class TestAsyncpgIntegration:
         adapter = AsyncpgConnectionAdapter(mock_conn)
 
         expected_msg = (
-            "PGShield cannot begin a transaction on an asyncpg connection "
+            "PGRetry cannot begin a transaction on an asyncpg connection "
             "that is already in a transaction. "
             "Acquire a fresh connection from your pool for each retryable operation, "
             "or wrap your own boundary."
@@ -169,7 +169,7 @@ class TestAsyncpgIntegration:
     @pytest.mark.asyncio
     async def test_asyncpg_query_executor_protocol_and_execution(self):
         """AsyncpgQueryExecutor satisfies QueryExecutor protocol and returns dicts."""
-        from pgshield.postgres.activity import QueryExecutor
+        from pgretry.postgres.activity import QueryExecutor
 
         mock_conn = MagicMock(spec=asyncpg.Connection)
         fake_record = {"pid": 1234, "state": "active"}

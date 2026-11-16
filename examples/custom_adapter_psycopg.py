@@ -1,18 +1,18 @@
 # pyright: reportMissingImports=false
-"""PGShield Custom Adapter Example: psycopg 3 (psycopg).
+"""PGRetry Custom Adapter Example: psycopg 3 (psycopg).
 
 Demonstrates how to build a custom TransactionAdapter for database drivers
-that are not bundled directly into PGShield's core (such as psycopg 3).
+that are not bundled directly into PGRetry's core (such as psycopg 3).
 
 When and Why to Create a Custom Adapter:
 ---------------------------------------
-PGShield ships with built-in adapters for SQLAlchemy (`AsyncSession`) and
+PGRetry ships with built-in adapters for SQLAlchemy (`AsyncSession`) and
 asyncpg (`Connection`). However, Python's async ecosystem includes other drivers
 like psycopg 3 (`psycopg.AsyncConnection`), third-party connection pools, or
 custom connection wrappers.
 
 Instead of requiring developers to wait for official driver integration releases,
-PGShield exposes the `@runtime_checkable` `TransactionAdapter` Protocol:
+PGRetry exposes the `@runtime_checkable` `TransactionAdapter` Protocol:
     - `async def begin(self) -> None`: Starts a new transaction boundary.
     - `async def commit(self) -> None`: Commits the active transaction boundary.
     - `async def rollback(self) -> None`: Rolls back the active transaction boundary.
@@ -21,14 +21,14 @@ Any object implementing these three async methods satisfies `TransactionAdapter`
 `TransactionRunner` automatically coordinates whole-transaction retries against
 this interface, and verifies it at initialization using `isinstance` checks.
 
-Furthermore, PGShield's error classification engine already natively inspects
+Furthermore, PGRetry's error classification engine already natively inspects
 `psycopg` exception hierarchies (via `error.sqlstate` / `error.pgcode`), so
 transient concurrency errors (40001 serialization failures, 40P01 deadlocks)
 are retried automatically out-of-the-box without requiring custom error extractors.
 
 To run this example:
     pip install "psycopg[binary]>=3.1"
-    export PGSHIELD_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
+    export PGRETRY_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
     python examples/custom_adapter_psycopg.py
 """
 
@@ -41,8 +41,8 @@ import sys
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from pgshield import RetryPolicy
-from pgshield.transaction import TransactionAdapter, TransactionRunner
+from pgretry import RetryPolicy
+from pgretry.transaction import TransactionAdapter, TransactionRunner
 
 if TYPE_CHECKING:
     import psycopg
@@ -56,7 +56,7 @@ T = TypeVar("T")
 
 
 class PsycopgConnectionAdapter(TransactionAdapter):
-    """Adapts a psycopg 3 AsyncConnection to PGShield's TransactionAdapter protocol.
+    """Adapts a psycopg 3 AsyncConnection to PGRetry's TransactionAdapter protocol.
 
     Manages transaction lifecycle by entering and exiting psycopg's AsyncTransaction
     context manager across retry attempts.
@@ -89,7 +89,7 @@ class PsycopgConnectionAdapter(TransactionAdapter):
         """Roll back current transaction boundary."""
         if self._tx is not None:
             with contextlib.suppress(Exception):
-                await self._tx.__aexit__(Exception, Exception("PGShield rollback"), None)
+                await self._tx.__aexit__(Exception, Exception("PGRetry rollback"), None)
             self._tx = None
 
 
@@ -113,11 +113,11 @@ async def main() -> None:
         )
         sys.exit(1)
 
-    dsn = os.environ.get("PGSHIELD_TEST_DSN")
+    dsn = os.environ.get("PGRETRY_TEST_DSN") or os.environ.get("PGSHIELD_TEST_DSN")
     if not dsn:
-        print("Error: PGSHIELD_TEST_DSN environment variable is not set.", file=sys.stderr)
+        print("Error: PGRETRY_TEST_DSN environment variable is not set.", file=sys.stderr)
         print(
-            "Example: export PGSHIELD_TEST_DSN="
+            "Example: export PGRETRY_TEST_DSN="
             "'postgresql://postgres:postgres@localhost:5432/postgres'",
             file=sys.stderr,
         )

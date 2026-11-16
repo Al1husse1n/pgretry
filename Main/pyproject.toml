@@ -1,5 +1,5 @@
 [project]
-name = "pgshield"
+name = "pgretry"
 version = "0.1.0"
 description = "PostgreSQL concurrency and retry toolkit for Python applications"
 authors = [
@@ -21,11 +21,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Al1husse1n/pg-shield"
-Repository = "https://github.com/Al1husse1n/pg-shield"
+Homepage = "https://github.com/Al1husse1n/pgretry"
+Repository = "https://github.com/Al1husse1n/pgretry"
 
 [tool.poetry]
-packages = [{include = "pgshield", from = "src"}]
+packages = [{include = "pgretry", from = "src"}]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

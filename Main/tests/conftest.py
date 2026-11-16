@@ -1,10 +1,10 @@
-"""Test configuration and fixtures for PGShield."""
+"""Test configuration and fixtures for PGRetry."""
 
 from typing import Callable, Optional
 
 import pytest
 
-from pgshield.transaction.runner import TransactionAdapter
+from pgretry.transaction.runner import TransactionAdapter
 
 
 class FakeAdapter(TransactionAdapter):

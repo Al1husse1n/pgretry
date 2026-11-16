@@ -1,6 +1,6 @@
 """Unit tests for error classifier subsystem."""
 
-from pgshield.retry.classifier import (
+from pgretry.retry.classifier import (
     SQLSTATE_CHECK_VIOLATION,
     SQLSTATE_FOREIGN_KEY_VIOLATION,
     SQLSTATE_NOT_NULL_VIOLATION,

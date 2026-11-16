@@ -2,8 +2,8 @@
 
 import pytest
 
-from pgshield.retry.backoff import calculate_backoff
-from pgshield.retry.policy import RetryPolicy
+from pgretry.retry.backoff import calculate_backoff
+from pgretry.retry.policy import RetryPolicy
 
 
 class TestBackoffCalculation:

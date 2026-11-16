@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from pgshield.instrumentation.logging import (
+from pgretry.instrumentation.logging import (
     TransactionEventType,
     TransactionLogger,
     sanitize_value,
@@ -61,7 +61,7 @@ class TestTransactionLogger:
 
     def test_log_started_event(self, caplog):
         caplog.set_level(logging.DEBUG)
-        logger = TransactionLogger(logging.getLogger("test.pgshield"))
+        logger = TransactionLogger(logging.getLogger("test.pgretry"))
 
         event = logger.log_started(attempt=1, transaction_id="tx-100", metadata={"user_id": 5})
         assert event.event_type == TransactionEventType.TRANSACTION_STARTED
@@ -72,7 +72,7 @@ class TestTransactionLogger:
 
     def test_log_committed_event(self, caplog):
         caplog.set_level(logging.INFO)
-        logger = TransactionLogger(logging.getLogger("test.pgshield"))
+        logger = TransactionLogger(logging.getLogger("test.pgretry"))
 
         event = logger.log_committed(attempt=1, duration=0.045, transaction_id="tx-200")
         assert event.event_type == TransactionEventType.TRANSACTION_COMMITTED
@@ -81,7 +81,7 @@ class TestTransactionLogger:
 
     def test_log_rolled_back_event(self, caplog):
         caplog.set_level(logging.WARNING)
-        logger = TransactionLogger(logging.getLogger("test.pgshield"))
+        logger = TransactionLogger(logging.getLogger("test.pgretry"))
 
         event = logger.log_rolled_back(
             attempt=1,
@@ -96,7 +96,7 @@ class TestTransactionLogger:
 
     def test_log_retry_event(self, caplog):
         caplog.set_level(logging.WARNING)
-        logger = TransactionLogger(logging.getLogger("test.pgshield"))
+        logger = TransactionLogger(logging.getLogger("test.pgretry"))
 
         event = logger.log_retry(
             attempt=1,
@@ -113,7 +113,7 @@ class TestTransactionLogger:
 
     def test_log_failed_event(self, caplog):
         caplog.set_level(logging.ERROR)
-        logger = TransactionLogger(logging.getLogger("test.pgshield"))
+        logger = TransactionLogger(logging.getLogger("test.pgretry"))
 
         event = logger.log_failed(
             attempt=3,
@@ -132,7 +132,7 @@ class TestTransactionLogger:
 
     def test_logger_disabled(self, caplog):
         caplog.set_level(logging.DEBUG)
-        logger = TransactionLogger(logging.getLogger("test.pgshield"), enabled=False)
+        logger = TransactionLogger(logging.getLogger("test.pgretry"), enabled=False)
 
         logger.log_started(attempt=1, transaction_id="disabled-tx")
         assert "disabled-tx" not in caplog.text

@@ -4,11 +4,11 @@ import logging
 
 import pytest
 
-from pgshield.instrumentation.logging import TransactionLogger
-from pgshield.instrumentation.metrics import InMemoryMetricsCollector
-from pgshield.postgres.diagnostics import DiagnosticCollector, DiagnosticMode
-from pgshield.retry.policy import RetryPolicy
-from pgshield.transaction.runner import TransactionRunner
+from pgretry.instrumentation.logging import TransactionLogger
+from pgretry.instrumentation.metrics import InMemoryMetricsCollector
+from pgretry.postgres.diagnostics import DiagnosticCollector, DiagnosticMode
+from pgretry.retry.policy import RetryPolicy
+from pgretry.transaction.runner import TransactionRunner
 
 
 class MockDatabaseError(Exception):

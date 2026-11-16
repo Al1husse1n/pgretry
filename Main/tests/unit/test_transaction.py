@@ -5,11 +5,11 @@ from typing import List, Optional
 
 import pytest
 
-from pgshield.retry.policy import RetryPolicy
-from pgshield.transaction.context import (
+from pgretry.retry.policy import RetryPolicy
+from pgretry.transaction.context import (
     get_current_context,
 )
-from pgshield.transaction.runner import (
+from pgretry.transaction.runner import (
     TransactionResult,
     TransactionRunner,
 )

@@ -1,4 +1,4 @@
-# Contributing to PGShield
+# Contributing to PGRetry
 
 This guide covers setting up your development environment, executing the test suite, and submitting pull requests.
 
@@ -28,14 +28,14 @@ pytest -q
 
 ## Running Integration Tests Locally
 
-Integration tests require a reachable PostgreSQL 16+ instance. Set `PGSHIELD_TEST_DSN` and run pytest with `-m integration`:
+Integration tests require a reachable PostgreSQL 16+ instance. Set `PGRETRY_TEST_DSN` and run pytest with `-m integration`:
 
 ```bash
 # On Linux/macOS (typical default port 5432):
-export PGSHIELD_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
+export PGRETRY_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
 
 # On Windows dev hosts (if running on port 5433):
-# $env:PGSHIELD_TEST_DSN="postgresql://postgres@127.0.0.1:5433/postgres"
+# $env:PGRETRY_TEST_DSN="postgresql://postgres@127.0.0.1:5433/postgres"
 
 cd Main
 pytest -q -m integration
@@ -50,7 +50,7 @@ To test against an isolated PostgreSQL container via Docker Compose:
 ```bash
 docker compose up -d --wait
 cd Main
-export PGSHIELD_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
+export PGRETRY_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
 pytest -q -m integration
 cd ..
 docker compose down
@@ -61,7 +61,7 @@ docker compose down
 GitHub Actions runs five distinct jobs on every push and pull request:
 
 - **lint**: Enforces code style, import sorting, and line length via `ruff check .` and formatting.
-- **type-check**: Enforces strict static type checking with `mypy src/pgshield`.
+- **type-check**: Enforces strict static type checking with `mypy src/pgretry`.
 - **unit**: Runs all unit tests (`pytest -q`) in an isolated Python 3.13 environment without database dependencies.
 - **integration**: Runs integration tests (`pytest -q -m integration`) against a native GitHub Actions PostgreSQL 16 service container.
 - **compose**: Verifies `docker-compose.yml` startup, validates healthchecks, runs integration tests against the compose cluster, and tears down the stack.
@@ -77,18 +77,18 @@ python -m build
 twine check dist/*
 ```
 
-This creates `dist/pgshield-<version>.tar.gz` (sdist) and `dist/pgshield-<version>-py3-none-any.whl` (wheel), and verifies metadata with `twine check`.
+This creates `dist/pgretry-<version>.tar.gz` (sdist) and `dist/pgretry-<version>-py3-none-any.whl` (wheel), and verifies metadata with `twine check`.
 
 ## Publishing Releases
 
-PGShield releases are automated through GitHub Actions:
-- **TestPyPI**: Pushes with version tags (`v*`) or manual triggers via `workflow_dispatch` invoke `.github/workflows/publish.yml` to build the distribution and publish artifacts to [TestPyPI](https://test.pypi.org/project/pgshield/) via Trusted Publishing.
+PGRetry releases are automated through GitHub Actions:
+- **TestPyPI**: Pushes with version tags (`v*`) or manual triggers via `workflow_dispatch` invoke `.github/workflows/publish.yml` to build the distribution and publish artifacts to [TestPyPI](https://test.pypi.org/project/pgretry/) via Trusted Publishing.
 
 ## Definition of Done for a PR
 
 Before submitting a Pull Request, verify:
 1. Lint and formatting checks pass (`ruff check .`).
-2. Type checking passes (`mypy src/pgshield`).
+2. Type checking passes (`mypy src/pgretry`).
 3. Unit tests pass locally (`pytest -q`).
 4. Integration tests pass locally or via Docker Compose (`pytest -q -m integration`).
 5. All GitHub Actions CI checks are green.

@@ -1,21 +1,21 @@
-# PGShield: PostgreSQL Concurrency & Retry Toolkit for Python
+# PGRetry: PostgreSQL Concurrency & Retry Toolkit for Python
 
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/)
 [![Dependencies](https://img.shields.io/badge/dependencies-zero_core-success.svg)](#installation)
 [![Tests](https://img.shields.io/badge/tests-108%20passed%2C%202%20skipped-brightgreen.svg)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-informational.svg)](pyproject.toml)
 
-**PGShield** is a production-grade concurrency resilience and retry orchestration toolkit for PostgreSQL applications written in Python.
+**PGRetry** is a production-grade concurrency resilience and retry orchestration toolkit for PostgreSQL applications written in Python.
 
 When building concurrent systems on PostgreSQL, transaction conflicts are not exceptions—they are standard concurrency control signals. PostgreSQL relies on transaction aborts to preserve data integrity under strict isolation levels (`SERIALIZABLE`, `REPEATABLE READ`) and row lock contention. Standard database drivers and ORMs catch these errors and abort the transaction, but leave the complex burden of rollback cleanup, backoff pacing, jitter calculation, and whole-transaction re-execution entirely to application code.
 
-PGShield provides a robust, decoupled layer that automates whole-transaction retries for recoverable concurrency failures, surfaces deep PostgreSQL engine diagnostics (`pg_stat_activity`, `pg_locks`, and blocking chains), redacts sensitive credentials in structured logs, and records comprehensive execution metrics.
+PGRetry provides a robust, decoupled layer that automates whole-transaction retries for recoverable concurrency failures, surfaces deep PostgreSQL engine diagnostics (`pg_stat_activity`, `pg_locks`, and blocking chains), redacts sensitive credentials in structured logs, and records comprehensive execution metrics.
 
 ---
 
 ## Table of Contents
 
-- [What PGShield Is (and Is Not)](#what-pgshield-is-and-is-not)
+- [What PGRetry Is (and Is Not)](#what-pgretry-is-and-is-not)
 - [The Core Problem: Why Whole-Transaction Retries Are Required](#the-core-problem-why-whole-transaction-retries-are-required)
 - [Architecture](#architecture)
 - [Transaction-Level Retry Orchestration](#transaction-level-retry-orchestration)
@@ -52,21 +52,21 @@ PGShield provides a robust, decoupled layer that automates whole-transaction ret
 
 ---
 
-## What PGShield Is (and Is Not)
+## What PGRetry Is (and Is Not)
 
-### What PGShield Is
+### What PGRetry Is
 
 * **A whole-transaction retry orchestrator:** Ensures that when a retryable PostgreSQL concurrency error occurs, the failed transaction is cleanly rolled back, delayed with randomized backoff, and the entire business logic callable is re-executed from the very beginning.
 * **A SQLSTATE classification engine:** Distinguishes transient concurrency aborts (`40001`, `40P01`) from permanent data and constraint errors (`23505`, `23503`, `42P01`).
 * **An observability engine for PostgreSQL concurrency:** Inspects PostgreSQL runtime state (`pg_stat_activity`, `pg_locks`, lock blocking graphs) when transactions fail or on demand.
 * **A zero-dependency core library:** The core retry and transaction engine requires only Python 3.13+ standard library components (`asyncio`, `contextvars`, `dataclasses`).
 
-### What PGShield Is NOT
+### What PGRetry Is NOT
 
-* **Not an ORM or Query Builder:** PGShield does not map tables to Python classes, generate SQL, or manage database schemas. You continue using SQLAlchemy, SQLModel, Tortoise, or raw SQL.
-* **Not a database driver:** PGShield does not replace `asyncpg`, `psycopg`, or `psycopg2`. It wraps driver connections and sessions.
-* **Not an automatic isolation level modifier:** PGShield does not alter your PostgreSQL connection's transaction isolation level. If your workload requires `SERIALIZABLE` or `REPEATABLE READ`, your application or connection pool must configure it explicitly.
-* **Not a distributed lock manager:** PGShield does not use Redis, ZooKeeper, or etcd. It relies strictly on PostgreSQL's native MVCC and locking primitives.
+* **Not an ORM or Query Builder:** PGRetry does not map tables to Python classes, generate SQL, or manage database schemas. You continue using SQLAlchemy, SQLModel, Tortoise, or raw SQL.
+* **Not a database driver:** PGRetry does not replace `asyncpg`, `psycopg`, or `psycopg2`. It wraps driver connections and sessions.
+* **Not an automatic isolation level modifier:** PGRetry does not alter your PostgreSQL connection's transaction isolation level. If your workload requires `SERIALIZABLE` or `REPEATABLE READ`, your application or connection pool must configure it explicitly.
+* **Not a distributed lock manager:** PGRetry does not use Redis, ZooKeeper, or etcd. It relies strictly on PostgreSQL's native MVCC and locking primitives.
 
 ---
 
@@ -144,13 +144,13 @@ Re-execute ENTIRE Callable from the beginning
 
 ## Architecture
 
-PGShield is built as a set of decoupled, single-responsibility modules:
+PGRetry is built as a set of decoupled, single-responsibility modules:
 
 ```mermaid
 flowchart TD
     App[Application Business Logic] --> Runner[TransactionRunner / @transaction]
     
-    subgraph PGShield Core Orchestration
+    subgraph PGRetry Core Orchestration
         Runner --> Ctx[TransactionContext & Attempt History]
         Runner --> Classify[Error Classifier]
         Runner --> Policy[RetryPolicy]
@@ -182,17 +182,17 @@ flowchart TD
 
 | Subsystem | Modules | Core Responsibility |
 | :--- | :--- | :--- |
-| **`pgshield.retry`** | `policy.py`, `backoff.py`, `classifier.py` | Immutable retry policies, full-jitter exponential backoff math, and SQLSTATE-aware error classification. |
-| **`pgshield.transaction`** | `runner.py`, `context.py`, `decorator.py` | Whole-transaction execution lifecycle, `ContextVar`-based runtime attempt tracking, and declarative decorators. |
-| **`pgshield.postgres`** | `errors.py`, `activity.py`, `locks.py`, `diagnostics.py` | Driver-agnostic PostgreSQL error normalization, session inspection (`pg_stat_activity`), lock analysis (`pg_locks`), and `DiagnosticReport` synthesis. |
-| **`pgshield.instrumentation`** | `logging.py`, `metrics.py` | Structured event logging with automatic password/URL redaction, and thread-safe metrics collection. |
-| **`pgshield.integrations`** | `sqlalchemy.py`, `asyncpg.py` | Concrete `TransactionAdapter` implementations for SQLAlchemy `AsyncSession` and `asyncpg.Connection`. |
+| **`pgretry.retry`** | `policy.py`, `backoff.py`, `classifier.py` | Immutable retry policies, full-jitter exponential backoff math, and SQLSTATE-aware error classification. |
+| **`pgretry.transaction`** | `runner.py`, `context.py`, `decorator.py` | Whole-transaction execution lifecycle, `ContextVar`-based runtime attempt tracking, and declarative decorators. |
+| **`pgretry.postgres`** | `errors.py`, `activity.py`, `locks.py`, `diagnostics.py` | Driver-agnostic PostgreSQL error normalization, session inspection (`pg_stat_activity`), lock analysis (`pg_locks`), and `DiagnosticReport` synthesis. |
+| **`pgretry.instrumentation`** | `logging.py`, `metrics.py` | Structured event logging with automatic password/URL redaction, and thread-safe metrics collection. |
+| **`pgretry.integrations`** | `sqlalchemy.py`, `asyncpg.py` | Concrete `TransactionAdapter` implementations for SQLAlchemy `AsyncSession` and `asyncpg.Connection`. |
 
 ---
 
 ## Transaction-Level Retry Orchestration
 
-The `TransactionRunner` is the central orchestrator in PGShield. It guarantees the following lifecycle invariants:
+The `TransactionRunner` is the central orchestrator in PGRetry. It guarantees the following lifecycle invariants:
 
 1. **Explicit Transaction Boundary:** Calls `adapter.begin()` before each execution attempt.
 2. **Whole Callable Execution:** Calls `await operation(*args, **kwargs)` from the very first line of code on every attempt.
@@ -232,11 +232,11 @@ flowchart TD
 
 ### Why Python Context Managers Cannot Retry Blocks
 
-Developers frequently ask why PGShield uses callables and decorators rather than an `async with` context manager:
+Developers frequently ask why PGRetry uses callables and decorators rather than an `async with` context manager:
 
 ```python
 # ❌ IMPOSSIBLE IN STANDARD PYTHON:
-async with pgshield.transaction():
+async with pgretry.transaction():
     await do_work_1()
     await do_work_2()  # If this raises 40001...
 ```
@@ -251,11 +251,11 @@ To replay the sequence from the beginning, the operations must be encapsulated i
 
 Blindly retrying every database exception is dangerous. Retrying an integrity violation (such as a duplicate primary key) wastes database resources and masks business logic bugs. 
 
-PGShield inspects exceptions using PostgreSQL's standard 5-character **SQLSTATE** codes defined in the SQL standard and PostgreSQL documentation.
+PGRetry inspects exceptions using PostgreSQL's standard 5-character **SQLSTATE** codes defined in the SQL standard and PostgreSQL documentation.
 
 ### Implemented Retryable Codes
 
-By default, PGShield considers only transient concurrency conflicts retryable:
+By default, PGRetry considers only transient concurrency conflicts retryable:
 
 | SQLSTATE | Error Name | Description | Default Action |
 | :--- | :--- | :--- | :--- |
@@ -276,10 +276,10 @@ Deterministic constraint and syntax violations are **never** retried:
 
 ### Direct Classification API
 
-You can use PGShield's classification logic directly:
+You can use PGRetry's classification logic directly:
 
 ```python
-from pgshield.retry import classify_error, is_retryable, ErrorCategory
+from pgretry.retry import classify_error, is_retryable, ErrorCategory
 
 try:
     await session.execute(...)
@@ -298,7 +298,7 @@ except Exception as exc:
 The `RetryPolicy` class is a frozen, immutable configuration dataclass governing retry attempts, backoff timing, and target SQLSTATE codes.
 
 ```python
-from pgshield.retry import RetryPolicy
+from pgretry.retry import RetryPolicy
 
 policy = RetryPolicy(
     max_attempts=5,  # Maximum execution attempts (initial + 4 retries)
@@ -329,7 +329,7 @@ Instances of `RetryPolicy` are strictly immutable (`frozen=True, slots=True`). A
 
 When a database experiences high concurrency contention, multiple transactions often fail almost simultaneously. If those transactions immediately retry, or retry on identical fixed timers, they collide again—a phenomenon known as the **thundering herd** problem.
 
-PGShield implements **Full Jitter** exponential backoff (as documented in AWS architecture research):
+PGRetry implements **Full Jitter** exponential backoff (as documented in AWS architecture research):
 
 $$\text{ceiling} = \min(\text{max\_delay}, \text{base\_delay} \times (\text{backoff\_factor}^{\text{attempt}}))$$
 $$\text{delay} = \text{random.uniform}(0.0, \text{ceiling}) \quad \text{(if jitter is enabled)}$$
@@ -345,7 +345,7 @@ Client A: ──── 100ms ────► Retry (Collides with B & C!)
 Client B: ──── 100ms ────► Retry (Collides with A & C!)
 Client C: ──── 100ms ────► Retry (Collides with A & B!)
 
-WITH FULL JITTER (PGShield default):
+WITH FULL JITTER (PGRetry default):
 Delays are uniformly distributed across [0.0, ceiling]:
 Client A: ── 42ms ──► Retry (Succeeds)
 Client B: ──── 87ms ────► Retry (Succeeds)
@@ -370,7 +370,7 @@ Database Driver (asyncpg.PostgresError / psycopg.Error)
 SQLAlchemy Layer (sqlalchemy.exc.DBAPIError / OperationalError)
        │ (Wraps driver exception inside .orig)
        ▼
-PGShield Error Normalizer (pgshield.postgres.errors)
+PGRetry Error Normalizer (pgretry.postgres.errors)
        │ (Inspects .sqlstate, .pgcode, .orig, __cause__, __context__)
        ▼
 PostgresErrorDetails (Unified, driver-agnostic dataclass)
@@ -381,7 +381,7 @@ PostgresErrorDetails (Unified, driver-agnostic dataclass)
 The `parse_postgres_error()` function introspects any exception without requiring direct imports of database drivers, returning a normalized `PostgresErrorDetails` dataclass:
 
 ```python
-from pgshield.postgres import parse_postgres_error
+from pgretry.postgres import parse_postgres_error
 
 details = parse_postgres_error(error)
 
@@ -400,22 +400,22 @@ print(details.driver_error_type)  # Name of underlying driver exception class
 
 ## Supported Integrations
 
-PGShield provides dedicated, tested adapters for the two primary asynchronous database toolkits in Python: **SQLAlchemy** and **asyncpg**.
+PGRetry provides dedicated, tested adapters for the two primary asynchronous database toolkits in Python: **SQLAlchemy** and **asyncpg**.
 
 ### SQLAlchemy (`AsyncSession`)
 
-The `SQLAlchemySessionAdapter` bridges an active `sqlalchemy.ext.asyncio.AsyncSession` to PGShield's `TransactionAdapter` protocol.
+The `SQLAlchemySessionAdapter` bridges an active `sqlalchemy.ext.asyncio.AsyncSession` to PGRetry's `TransactionAdapter` protocol.
 
 * `begin()`: Calls `await session.begin()`. If the session is already in an active transaction (`session.in_transaction()`), raises `RuntimeError`.
 * `commit()`: Calls `await session.commit()`.
-* `rollback()`: Calls `await session.rollback()`. PGShield does not call `expunge_all()`; pending objects in the caller's session are left as-is after rollback.
+* `rollback()`: Calls `await session.rollback()`. PGRetry does not call `expunge_all()`; pending objects in the caller's session are left as-is after rollback.
 
 #### Helper: `run_sqlalchemy_transaction`
 
 ```python
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import select, update
-from pgshield import run_sqlalchemy_transaction, RetryPolicy
+from pgretry import run_sqlalchemy_transaction, RetryPolicy
 
 engine = create_async_engine("postgresql+asyncpg://user:pass@localhost:5432/mydb")
 session_factory = async_sessionmaker(engine, expire_on_commit=False)
@@ -452,8 +452,8 @@ The `AsyncpgConnectionAdapter` integrates directly with raw `asyncpg.Connection`
 
 ### Session and connection ownership (v0.1)
 
-* **SQLAlchemy:** PGShield owns the transaction it starts. If your `AsyncSession` is already in a transaction, PGShield raises `RuntimeError`. Wrap your own boundary around a fresh session.
-* **asyncpg:** PGShield owns the transaction it starts on the connection you pass. If the connection is already in a transaction, PGShield raises `RuntimeError`. The correct pool pattern is:
+* **SQLAlchemy:** PGRetry owns the transaction it starts. If your `AsyncSession` is already in a transaction, PGRetry raises `RuntimeError`. Wrap your own boundary around a fresh session.
+* **asyncpg:** PGRetry owns the transaction it starts on the connection you pass. If the connection is already in a transaction, PGRetry raises `RuntimeError`. The correct pool pattern is:
   ```python
   async with pool.acquire() as conn:
       await run_asyncpg_transaction(conn, operation)
@@ -464,7 +464,7 @@ The `AsyncpgConnectionAdapter` integrates directly with raw `asyncpg.Connection`
 
 ```python
 import asyncpg
-from pgshield import run_asyncpg_transaction, RetryPolicy
+from pgretry import run_asyncpg_transaction, RetryPolicy
 
 
 async def transfer_credits(
@@ -496,12 +496,12 @@ async def transfer_credits(
 
 ### Custom Driver Adapters (e.g. `psycopg3`)
 
-PGShield is deliberately decoupled from any single database driver via the `@runtime_checkable` `TransactionAdapter` protocol. If you use a driver that does not have a bundled helper—such as **psycopg 3 (`psycopg.AsyncConnection`)**, custom connection pools, or proxy wrappers—you can write your own adapter in ~20 lines of code.
+PGRetry is deliberately decoupled from any single database driver via the `@runtime_checkable` `TransactionAdapter` protocol. If you use a driver that does not have a bundled helper—such as **psycopg 3 (`psycopg.AsyncConnection`)**, custom connection pools, or proxy wrappers—you can write your own adapter in ~20 lines of code.
 
 #### Why and When to Create a Custom Adapter
 
-* **Driver Flexibility without Waiting for Releases:** You do not need to wait for PGShield to bundle support for your driver or internal connection abstraction.
-* **Automatic SQLSTATE Classification:** PGShield's error classifier natively inspects exception hierarchies from `psycopg` and `psycopg2` (`error.sqlstate` / `error.pgcode`). Concurrency aborts (`40001` serialization failure, `40P01` deadlock detected) are automatically classified as retryable without writing a custom error extractor.
+* **Driver Flexibility without Waiting for Releases:** You do not need to wait for PGRetry to bundle support for your driver or internal connection abstraction.
+* **Automatic SQLSTATE Classification:** PGRetry's error classifier natively inspects exception hierarchies from `psycopg` and `psycopg2` (`error.sqlstate` / `error.pgcode`). Concurrency aborts (`40001` serialization failure, `40P01` deadlock detected) are automatically classified as retryable without writing a custom error extractor.
 * **Fail-Fast Validation:** `TransactionRunner` validates that your adapter implements `TransactionAdapter` via runtime `isinstance` checks at initialization, raising `TypeError` immediately if an unadapted connection is passed.
 
 #### Minimal Example: `psycopg 3` Async Adapter
@@ -510,10 +510,10 @@ PGShield is deliberately decoupled from any single database driver via the `@run
 import contextlib
 from typing import Any
 import psycopg
-from pgshield.transaction import TransactionAdapter, TransactionRunner
+from pgretry.transaction import TransactionAdapter, TransactionRunner
 
 class PsycopgConnectionAdapter(TransactionAdapter):
-    """Adapts a psycopg 3 AsyncConnection to PGShield's TransactionAdapter protocol."""
+    """Adapts a psycopg 3 AsyncConnection to PGRetry's TransactionAdapter protocol."""
 
     def __init__(self, connection: psycopg.AsyncConnection[Any]) -> None:
         self._connection = connection
@@ -536,7 +536,7 @@ class PsycopgConnectionAdapter(TransactionAdapter):
         """Roll back the active transaction boundary."""
         if self._tx is not None:
             with contextlib.suppress(Exception):
-                await self._tx.__aexit__(Exception, Exception("PGShield rollback"), None)
+                await self._tx.__aexit__(Exception, Exception("PGRetry rollback"), None)
             self._tx = None
 
 # Pass directly to TransactionRunner:
@@ -551,7 +551,7 @@ class PsycopgConnectionAdapter(TransactionAdapter):
 
 ## Diagnostics Subsystem & QueryExecutor
 
-When a concurrency failure occurs in production, understanding *why* it happened is challenging. PGShield includes a dedicated diagnostic subsystem to capture and analyze PostgreSQL engine state at the moment of failure.
+When a concurrency failure occurs in production, understanding *why* it happened is challenging. PGRetry includes a dedicated diagnostic subsystem to capture and analyze PostgreSQL engine state at the moment of failure.
 
 ### Application vs. Diagnostic Execution
 
@@ -575,7 +575,7 @@ It is essential to understand the distinction between application transactions a
 
 ### The `QueryExecutor` Protocol
 
-PGShield defines a generic, runtime-checkable protocol for running read-only diagnostic SQL:
+PGRetry defines a generic, runtime-checkable protocol for running read-only diagnostic SQL:
 
 ```python
 from typing import Any, Mapping, Optional, Protocol, Sequence
@@ -591,21 +591,21 @@ class QueryExecutor(Protocol):
 
 #### Concrete `QueryExecutor` Adapters
 
-PGShield provides pre-packaged concrete `QueryExecutor` adapters for both asyncpg and SQLAlchemy:
+PGRetry provides pre-packaged concrete `QueryExecutor` adapters for both asyncpg and SQLAlchemy:
 
-* **`AsyncpgQueryExecutor`** (`pgshield.integrations.asyncpg` or `pgshield`):
+* **`AsyncpgQueryExecutor`** (`pgretry.integrations.asyncpg` or `pgretry`):
   Wraps an `asyncpg.Connection` and returns plain Python dictionaries:
   ```python
-  from pgshield import AsyncpgQueryExecutor
+  from pgretry import AsyncpgQueryExecutor
 
   executor = AsyncpgQueryExecutor(conn)
   rows = await executor.execute_query("SELECT 1 AS num")
   ```
 
-* **`SQLAlchemyQueryExecutor`** (`pgshield.integrations.sqlalchemy` or `pgshield`):
+* **`SQLAlchemyQueryExecutor`** (`pgretry.integrations.sqlalchemy` or `pgretry`):
   Wraps a SQLAlchemy `AsyncSession` and returns row mappings:
   ```python
-  from pgshield import SQLAlchemyQueryExecutor
+  from pgretry import SQLAlchemyQueryExecutor
 
   executor = SQLAlchemyQueryExecutor(session)
   rows = await executor.execute_query("SELECT 1 AS num")
@@ -617,7 +617,7 @@ The recommended production pattern is to provide a dedicated connection (or smal
 
 ```python
 import asyncpg
-from pgshield import AsyncpgQueryExecutor, DiagnosticCollector, DiagnosticMode
+from pgretry import AsyncpgQueryExecutor, DiagnosticCollector, DiagnosticMode
 
 # Configure collector with dedicated diagnostic connection or pool
 diag_conn = await asyncpg.connect("postgresql://...")
@@ -662,7 +662,7 @@ class SessionActivity:
 
 ### Query Snippet Security Toggle
 
-To prevent sensitive user data or credentials from leaking into diagnostic outputs, `include_query_snippet` is `False` by default. When explicitly set to `True`, PGShield extracts only the first 120 characters via `LEFT(query, 120)`.
+To prevent sensitive user data or credentials from leaking into diagnostic outputs, `include_query_snippet` is `False` by default. When explicitly set to `True`, PGRetry extracts only the first 120 characters via `LEFT(query, 120)`.
 
 ---
 
@@ -672,7 +672,7 @@ The `postgres/locks.py` module parses PostgreSQL's active lock table, joins rela
 
 ### Two Diagnostic Paths for Lock Conflicts
 
-PGShield provides two complementary diagnostic channels for analyzing lock contention:
+PGRetry provides two complementary diagnostic channels for analyzing lock contention:
 
 1. **Inferred (default, works everywhere):**
    `detect_blocking_chains(locks)` pairs ungranted lock requests (`granted=False`) against granted locks (`granted=True`) sharing the identical resource key (`lock_type, relation_name, schema_name, page, tuple, transaction_id`). Crucially, relation lock pairs are filtered through PostgreSQL's official 8-mode relation lock compatibility matrix (`_RELATION_LOCK_COMPATIBILITY`, Table 13.2 in PostgreSQL documentation), eliminating false positives between compatible concurrent locks (such as concurrent `AccessShareLock` reads or concurrent `RowExclusiveLock` writes on separate rows). The resulting `BlockingRelationship.authoritative` attribute is set to `False`.
@@ -682,7 +682,7 @@ PGShield provides two complementary diagnostic channels for analyzing lock conte
 
 ### Diagnostic Privileges
 
-Reading `pg_locks` and `pg_blocking_pids` requires no privileges beyond the ability to see your own backend; reading all backends requires `pg_monitor` or superuser. PGShield's tests exercise the self-visible path (or the superuser path when running in compose).
+Reading `pg_locks` and `pg_blocking_pids` requires no privileges beyond the ability to see your own backend; reading all backends requires `pg_monitor` or superuser. PGRetry's tests exercise the self-visible path (or the superuser path when running in compose).
 
 ### `LockInfo` Dataclass
 
@@ -703,10 +703,10 @@ class LockInfo:
 
 ### Blocking Chain Detection (`detect_blocking_chains`)
 
-PGShield matches ungranted lock requests (`granted=False`) against granted locks (`granted=True`) matching the identical resource key (`lock_type, relation_name, schema_name, page, tuple, transaction_id`).
+PGRetry matches ungranted lock requests (`granted=False`) against granted locks (`granted=True`) matching the identical resource key (`lock_type, relation_name, schema_name, page, tuple, transaction_id`).
 
 ```python
-from pgshield.postgres.locks import detect_blocking_chains
+from pgretry.postgres.locks import detect_blocking_chains
 
 blocking_chains = detect_blocking_chains(locks)
 for block in blocking_chains:
@@ -718,7 +718,7 @@ for block in blocking_chains:
 ### Authoritative Blocking Inspection (`fetch_locks_with_authoritative`)
 
 ```python
-from pgshield.postgres.locks import fetch_locks_with_authoritative
+from pgretry.postgres.locks import fetch_locks_with_authoritative
 
 locks, authoritative_blocking = await fetch_locks_with_authoritative(executor)
 for auth in authoritative_blocking:
@@ -734,7 +734,7 @@ for auth in authoritative_blocking:
 >
 > PostgreSQL's Serializable Snapshot Isolation (SSI) engine detects read/write anti-dependencies using **SIREAD predicate locks**. Predicate locks are in-memory tracking flags that do not block execution; transactions proceed normally until commit time, where PostgreSQL aborts any transaction participating in a cycle.
 >
-> Because predicate locks are not blocking locks, `pg_locks` will generally show **no waiting locks** during a pure SSI serialization failure. PGShield explicitly identifies this distinction in its diagnostic explanations ("No blocking relationship was found in pg_locks; this is expected for Serializable Snapshot Isolation, where serialization conflicts are tracked via SIREAD predicate locks and may not appear as ordinary lock waits.") and warnings.
+> Because predicate locks are not blocking locks, `pg_locks` will generally show **no waiting locks** during a pure SSI serialization failure. PGRetry explicitly identifies this distinction in its diagnostic explanations ("No blocking relationship was found in pg_locks; this is expected for Serializable Snapshot Isolation, where serialization conflicts are tracked via SIREAD predicate locks and may not appear as ordinary lock waits.") and warnings.
 
 ---
 
@@ -774,7 +774,7 @@ class DiagnosticReport:
 
 ### Automated Recommendations Engine
 
-PGShield inspects the error and lock state to generate targeted guidance:
+PGRetry inspects the error and lock state to generate targeted guidance:
 
 * **For `40001` (Serialization Failure):** Recommends whole-transaction retries with jitter, keeping read-write sets minimal, and declaring read-only transactions as `READ ONLY`.
 * **For `40P01` (Deadlock):** Details the exact blocking chain and recommends acquiring locks in consistent global order across application endpoints.
@@ -788,11 +788,11 @@ The `TransactionLogger` produces structured, machine-readable logs compatible wi
 
 ### Standard Logger Configuration
 
-By default, logs are emitted under the logger hierarchy `pgshield.transaction`:
+By default, logs are emitted under the logger hierarchy `pgretry.transaction`:
 
 ```python
 import logging
-from pgshield.instrumentation import TransactionLogger
+from pgretry.instrumentation import TransactionLogger
 
 # Attach standard Python logging handler
 logging.basicConfig(level=logging.INFO)
@@ -813,7 +813,7 @@ tx_logger = TransactionLogger(enabled=True)
 
 ### Automatic Credential and URL Redaction
 
-PGShield includes recursive sanitization (`sanitize_value`) that executes automatically across all event metadata:
+PGRetry includes recursive sanitization (`sanitize_value`) that executes automatically across all event metadata:
 
 1. **Sensitive Key Redaction:** Any dictionary key matching passwords, tokens, API keys, credentials, or secrets is replaced with `"[REDACTED]"`.
 2. **Database DSN Masking:** Connection URLs (e.g. `postgresql://user:secret123@host:5432/db`) are automatically parsed and masked (`postgresql://user:[REDACTED]@host:5432/db`).
@@ -841,7 +841,7 @@ Sample JSON log output (`event.to_dict()`):
 
 ## Telemetry & Telemetry Metrics
 
-PGShield provides a decoupled metrics protocol (`MetricsCollector`) and a thread-safe, in-memory implementation (`InMemoryMetricsCollector`) that requires zero third-party monitoring dependencies.
+PGRetry provides a decoupled metrics protocol (`MetricsCollector`) and a thread-safe, in-memory implementation (`InMemoryMetricsCollector`) that requires zero third-party monitoring dependencies.
 
 ### The `MetricsCollector` Protocol
 
@@ -874,7 +874,7 @@ class MetricsCollector(Protocol):
 ### Using `InMemoryMetricsCollector`
 
 ```python
-from pgshield.instrumentation import InMemoryMetricsCollector
+from pgretry.instrumentation import InMemoryMetricsCollector
 
 metrics = InMemoryMetricsCollector()
 
@@ -904,7 +904,7 @@ During execution, metadata about the active transaction is accessible via Python
 You can inspect the live transaction context using `get_current_context()`:
 
 ```python
-from pgshield.transaction import get_current_context
+from pgretry.transaction import get_current_context
 
 
 async def my_operation():
@@ -935,10 +935,10 @@ Every attempt (successful or failed) appends an immutable `AttemptRecord` to `ct
 
 ## Declarative Decorators (`@transaction`, `@transactional`)
 
-PGShield provides `@transaction` (and its alias `@transactional`) to wrap async functions declaratively.
+PGRetry provides `@transaction` (and its alias `@transactional`) to wrap async functions declaratively.
 
 ```python
-from pgshield import transaction
+from pgretry import transaction
 
 
 # Basic usage (defaults to RetryPolicy())
@@ -956,7 +956,7 @@ async def update_user_balance(user_id: int, new_balance: float): ...
 You can inject pre-configured components (such as adapters, loggers, or runners) directly into the decorator:
 
 ```python
-from pgshield import transaction, TransactionRunner, RetryPolicy
+from pgretry import transaction, TransactionRunner, RetryPolicy
 
 custom_runner = TransactionRunner(
     policy=RetryPolicy(max_attempts=4, base_delay=0.02),
@@ -969,13 +969,13 @@ custom_runner = TransactionRunner(
 async def execute_order(order_id: str): ...
 ```
 
-The decorator preserves the original function's signature and docstrings via `functools.wraps`, and attaches the runner instance as `.__pgshield_runner__`.
+The decorator preserves the original function's signature and docstrings via `functools.wraps`, and attaches the runner instance as `.__pgretry_runner__`.
 
 ---
 
 ## FastAPI Integration Example
 
-In FastAPI applications, database sessions are typically managed via dependency injection. Here is a production pattern integrating PGShield, SQLAlchemy `AsyncSession`, and FastAPI routes:
+In FastAPI applications, database sessions are typically managed via dependency injection. Here is a production pattern integrating PGRetry, SQLAlchemy `AsyncSession`, and FastAPI routes:
 
 ```python
 from contextlib import asynccontextmanager
@@ -984,7 +984,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy import select
 
-from pgshield import (
+from pgretry import (
     RetryPolicy,
     TransactionRunner,
     SQLAlchemySessionAdapter,
@@ -1002,12 +1002,12 @@ engine = create_async_engine(
 )
 session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
-# 2. Shared PGShield Telemetry
+# 2. Shared PGRetry Telemetry
 metrics = InMemoryMetricsCollector()
 logger = TransactionLogger(enabled=True)
 retry_policy = RetryPolicy(max_attempts=3, base_delay=0.05, max_delay=0.5)
 
-app = FastAPI(title="PGShield Banking API")
+app = FastAPI(title="PGRetry Banking API")
 
 
 async def get_db_session() -> AsyncSession:
@@ -1065,7 +1065,7 @@ async def transfer_money(
 
 ## Installation
 
-PGShield is written for modern Python and has **zero required external dependencies** for its core library.
+PGRetry is written for modern Python and has **zero required external dependencies** for its core library.
 
 ### Python Version Support
 * **Python 3.13+** is required (as configured in `pyproject.toml`).
@@ -1074,15 +1074,15 @@ PGShield is written for modern Python and has **zero required external dependenc
 
 ```bash
 # Core package (zero external dependencies)
-pip install pgshield
+pip install pgretry
 
 # Or using poetry
-poetry add pgshield
+poetry add pgretry
 ```
 
 ### Optional / Development Dependencies
 
-PGShield provides optional integration support for SQLAlchemy, asyncpg, and FastAPI:
+PGRetry provides optional integration support for SQLAlchemy, asyncpg, and FastAPI:
 
 ```toml
 [dependency-groups]
@@ -1100,12 +1100,12 @@ dev = [
 
 ## Quick Start
 
-Here is a complete, runnable example using PGShield with `asyncpg` in under 60 seconds:
+Here is a complete, runnable example using PGRetry with `asyncpg` in under 60 seconds:
 
 ```python
 import asyncio
 import asyncpg
-from pgshield import run_asyncpg_transaction, RetryPolicy
+from pgretry import run_asyncpg_transaction, RetryPolicy
 
 
 async def main():
@@ -1140,12 +1140,12 @@ asyncio.run(main())
 
 ## Complete Real-World Example: Bank Transfer
 
-This realistic example illustrates how PGShield coordinates the complete retry lifecycle when handling a concurrency conflict during a balance transfer between two accounts:
+This realistic example illustrates how PGRetry coordinates the complete retry lifecycle when handling a concurrency conflict during a balance transfer between two accounts:
 
 ```python
 import asyncio
 import asyncpg
-from pgshield import (
+from pgretry import (
     TransactionRunner,
     AsyncpgConnectionAdapter,
     RetryPolicy,
@@ -1213,9 +1213,9 @@ async def execute_transfer(
 
 1. **Attempt 1 Begins:** `adapter.begin()` starts a new transaction.
 2. **Conflict Occurs:** A concurrent transaction updates `bank_accounts`, raising `40001 (serialization_failure)`.
-3. **Rollback:** PGShield immediately calls `adapter.rollback()`.
-4. **Classification:** PGShield inspects the error and identifies `40001` as a retryable concurrency conflict.
-5. **Backoff Delay:** PGShield calculates a jittered delay (e.g. 38.4ms) and awaits `asyncio.sleep()`.
+3. **Rollback:** PGRetry immediately calls `adapter.rollback()`.
+4. **Classification:** PGRetry inspects the error and identifies `40001` as a retryable concurrency conflict.
+5. **Backoff Delay:** PGRetry calculates a jittered delay (e.g. 38.4ms) and awaits `asyncio.sleep()`.
 6. **Attempt 2 Begins:** `adapter.begin()` starts a brand-new transaction.
 7. **Re-execution:** `transfer_operation` reads the *new*, updated balance from PostgreSQL.
 8. **Commit:** `adapter.commit()` succeeds.
@@ -1252,13 +1252,13 @@ Long-running transactions hold locks longer and broaden their read/write sets, e
 Never configure `max_attempts` to infinity. Unbounded retries in an overloaded database exacerbate server load and lock queues. Choose a realistic limit (3 to 5 attempts) and allow unresolvable conflicts to propagate to the application error handler.
 
 ### 5. Ambiguous Commit Outcomes
-PGShield does NOT retry transactions whose `commit()` call raised an exception. When a network disconnection, socket timeout, or driver error occurs during commit, the server may have successfully committed the transaction before the connection was severed. Retrying such a transaction could execute non-idempotent operations multiple times and cause data corruption. Callers must treat commit failures as ambiguous and design application-level idempotency accordingly.
+PGRetry does NOT retry transactions whose `commit()` call raised an exception. When a network disconnection, socket timeout, or driver error occurs during commit, the server may have successfully committed the transaction before the connection was severed. Retrying such a transaction could execute non-idempotent operations multiple times and cause data corruption. Callers must treat commit failures as ambiguous and design application-level idempotency accordingly.
 
 ---
 
 ## Performance & Runtime Overhead
 
-PGShield is designed for high-performance, asynchronous services:
+PGRetry is designed for high-performance, asynchronous services:
 
 1. **Zero Overhead for Successful Transactions:** When transactions succeed on the first attempt, overhead is limited to a few nanoseconds of Python method dispatch and timestamp recording.
 2. **Zero Diagnostic Cost in Default Mode:** By default (`DiagnosticMode.OFF`), no queries to `pg_stat_activity` or `pg_locks` are executed.
@@ -1269,14 +1269,14 @@ PGShield is designed for high-performance, asynchronous services:
 
 ## Project Structure
 
-The PGShield repository structure is organized as follows:
+The PGRetry repository structure is organized as follows:
 
 ```text
 Main/
 ├── pyproject.toml                     # Poetry project config (Python >= 3.13)
 ├── poetry.lock                        # Pinned lockfile
 ├── src/
-│   └── pgshield/
+│   └── pgretry/
 │       ├── __init__.py                # Top-level public API exports
 │       ├── retry/                     # Retry subsystem
 │       │   ├── policy.py              # RetryPolicy configuration dataclass
@@ -1322,7 +1322,7 @@ Main/
 
 ## Testing
 
-PGShield features an extensive test suite validating all lifecycle states, retry bounds, mathematical distributions, and integration adapters.
+PGRetry features an extensive test suite validating all lifecycle states, retry bounds, mathematical distributions, and integration adapters.
 
 ### Running Tests
 
@@ -1336,7 +1336,7 @@ poetry run pytest
 
 ```bash
 docker compose up -d --wait
-export PGSHIELD_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
+export PGRETRY_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
 pytest -m integration
 ```
 
@@ -1379,13 +1379,13 @@ tests\unit\test_transaction.py ..........                                [100%]
 
 ## Public API Reference
 
-All primary symbols are exported at the root `pgshield` package level:
+All primary symbols are exported at the root `pgretry` package level:
 
 ```python
-import pgshield
+import pgretry
 ```
 
-### Core Symbols Exported in `pgshield.__all__`
+### Core Symbols Exported in `pgretry.__all__`
 
 | Symbol | Category | Description |
 | :--- | :--- | :--- |
@@ -1444,21 +1444,21 @@ To maintain engineering transparency, note the following architectural realities
 
 1. **SSI Conflicts Do Not Appear in `pg_locks`:** PostgreSQL's SSI (`40001`) conflicts are tracked via SIREAD predicate locks in private kernel memory structures. They do not block queries and will generally not show up as waiting locks in `pg_locks`.
 2. **Observational Diagnostics:** Diagnostic queries against `pg_stat_activity` and `pg_locks` represent a momentary snapshot after the transaction failed. If conflicting concurrent transactions have already committed or disconnected, their locks will no longer appear in the diagnostic output.
-3. **Separate Connection for Diagnostics:** Applications should provide a dedicated connection or pool to `DiagnosticCollector` via concrete adapters (`AsyncpgQueryExecutor`, `SQLAlchemyQueryExecutor`). PGShield intentionally avoids running diagnostic SQL on unverified application connections that may be in aborted transaction states.
+3. **Separate Connection for Diagnostics:** Applications should provide a dedicated connection or pool to `DiagnosticCollector` via concrete adapters (`AsyncpgQueryExecutor`, `SQLAlchemyQueryExecutor`). PGRetry intentionally avoids running diagnostic SQL on unverified application connections that may be in aborted transaction states.
 4. **Idempotency Requirement:** Callables passed to `TransactionRunner` must be safe to execute multiple times. If your function contains uncommitted local state mutations or external API calls, those actions will repeat on retry.
-5. **No Synchronous Driver Support:** PGShield is written exclusively for asynchronous Python (`asyncio`). Synchronous DBAPI drivers (`psycopg2` sync, synchronous SQLAlchemy sessions) are not supported.
+5. **No Synchronous Driver Support:** PGRetry is written exclusively for asynchronous Python (`asyncio`). Synchronous DBAPI drivers (`psycopg2` sync, synchronous SQLAlchemy sessions) are not supported.
 
 ---
 
 ## Developer Experience
 
-PGShield is engineered for a predictable developer experience and strict typing:
+PGRetry is engineered for a predictable developer experience and strict typing:
 
-* **Strict Type Safety:** Type hints are strictly enforced across the entire library with `mypy` in strict mode. The package includes a `py.typed` marker (PEP 561) enabling downstream type checkers to validate PGShield invocations without untyped boundary errors.
+* **Strict Type Safety:** Type hints are strictly enforced across the entire library with `mypy` in strict mode. The package includes a `py.typed` marker (PEP 561) enabling downstream type checkers to validate PGRetry invocations without untyped boundary errors.
 * **Architectural Boundaries:** A comprehensive 10-point review of operational constraints, ambiguous commit behaviors, and external side effects is documented in [docs/limitations.md](docs/limitations.md).
 * **Runnable Examples:** Self-contained example scripts demonstrating atomic balance transfers are available in the `examples/` directory:
   ```bash
-  export PGSHIELD_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
+  export PGRETRY_TEST_DSN="postgresql://postgres:postgres@localhost:5432/postgres"
   python examples/sqlalchemy_transfer.py
   python examples/asyncpg_transfer.py
   python examples/custom_adapter_psycopg.py  # Custom psycopg 3 adapter
@@ -1477,15 +1477,15 @@ PGShield is engineered for a predictable developer experience and strict typing:
 
 ## Design Philosophy
 
-The architecture of PGShield is guided by four core principles:
+The architecture of PGRetry is guided by four core principles:
 
-1. **PostgreSQL handles concurrency control.** PostgreSQL's MVCC and lock managers are world-class. PGShield does not attempt to predict conflicts, intercept locks, or reinvent concurrency control outside the database.
-2. **PGShield handles retry orchestration.** Recovering from transient conflicts requires careful rollback management, jittered backoff, and full callable replay. PGShield handles this complexity cleanly and reliably.
-3. **The application owns business logic.** Transactions remain regular Python functions. PGShield wraps operations without intruding on domain models or business rules.
-4. **Diagnostics explain what the database was doing.** When transactions fail, developers should not have to guess. PGShield inspects database engine internals and translates low-level lock contention into actionable engineering recommendations.
+1. **PostgreSQL handles concurrency control.** PostgreSQL's MVCC and lock managers are world-class. PGRetry does not attempt to predict conflicts, intercept locks, or reinvent concurrency control outside the database.
+2. **PGRetry handles retry orchestration.** Recovering from transient conflicts requires careful rollback management, jittered backoff, and full callable replay. PGRetry handles this complexity cleanly and reliably.
+3. **The application owns business logic.** Transactions remain regular Python functions. PGRetry wraps operations without intruding on domain models or business rules.
+4. **Diagnostics explain what the database was doing.** When transactions fail, developers should not have to guess. PGRetry inspects database engine internals and translates low-level lock contention into actionable engineering recommendations.
 
 ---
 
 ## License
 
-PGShield is open-source software licensed under the **MIT License**. See `pyproject.toml` for author and package metadata.
+PGRetry is open-source software licensed under the **MIT License**. See `pyproject.toml` for author and package metadata.

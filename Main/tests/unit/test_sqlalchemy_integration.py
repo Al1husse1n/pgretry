@@ -1,4 +1,4 @@
-"""Unit tests for SQLAlchemy AsyncSession integration in PGShield."""
+"""Unit tests for SQLAlchemy AsyncSession integration in PGRetry."""
 
 from unittest.mock import AsyncMock, MagicMock
 
@@ -6,14 +6,14 @@ import pytest
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pgshield.integrations.sqlalchemy import (
+from pgretry.integrations.sqlalchemy import (
     SQLAlchemyQueryExecutor,
     SQLAlchemySessionAdapter,
     SQLAlchemyTransactionRunner,
     extract_sqlalchemy_sqlstate,
     run_sqlalchemy_transaction,
 )
-from pgshield.retry.policy import RetryPolicy
+from pgretry.retry.policy import RetryPolicy
 
 
 class MockDriverError(Exception):
@@ -69,7 +69,7 @@ class TestSQLAlchemyIntegration:
         adapter = SQLAlchemySessionAdapter(mock_session)
 
         expected_msg = (
-            "PGShield cannot begin a transaction on a session that is already in a transaction. "
+            "PGRetry cannot begin a transaction on a session that is already in a transaction. "
             "Pass a session with no active transaction, "
             "or wrap your own boundary around a fresh session."
         )
@@ -194,7 +194,7 @@ class TestSQLAlchemyIntegration:
     @pytest.mark.asyncio
     async def test_sqlalchemy_query_executor_protocol_and_execution(self):
         """SQLAlchemyQueryExecutor satisfies QueryExecutor protocol and returns dicts."""
-        from pgshield.postgres.activity import QueryExecutor
+        from pgretry.postgres.activity import QueryExecutor
 
         mock_session = MagicMock(spec=AsyncSession)
         mock_result = MagicMock()
