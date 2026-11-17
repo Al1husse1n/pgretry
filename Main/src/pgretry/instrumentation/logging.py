@@ -161,7 +161,7 @@ class TransactionLogger:
                 "Transaction started%s (attempt %d)",
                 tx_tag,
                 attempt,
-                extra={"pgretry": event.to_dict(), "pgshield": event.to_dict()},
+                extra={"pgretry": event.to_dict()},
             )
         return event
 
@@ -189,7 +189,7 @@ class TransactionLogger:
                 tx_tag,
                 duration * 1000.0,
                 attempt,
-                extra={"pgretry": event.to_dict(), "pgshield": event.to_dict()},
+                extra={"pgretry": event.to_dict()},
             )
         return event
 
@@ -223,7 +223,7 @@ class TransactionLogger:
                 code_tag,
                 attempt,
                 duration * 1000.0,
-                extra={"pgretry": event.to_dict(), "pgshield": event.to_dict()},
+                extra={"pgretry": event.to_dict()},
             )
         return event
 
@@ -264,7 +264,7 @@ class TransactionLogger:
                 attempt,
                 duration * 1000.0,
                 retry_delay * 1000.0,
-                extra={"pgretry": event.to_dict(), "pgshield": event.to_dict()},
+                extra={"pgretry": event.to_dict()},
             )
         return event
 
@@ -301,6 +301,6 @@ class TransactionLogger:
                 attempt,
                 duration * 1000.0,
                 error_message or "Unknown error",
-                extra={"pgretry": event.to_dict(), "pgshield": event.to_dict()},
+                extra={"pgretry": event.to_dict()},
             )
         return event

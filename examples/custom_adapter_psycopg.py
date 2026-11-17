@@ -113,7 +113,7 @@ async def main() -> None:
         )
         sys.exit(1)
 
-    dsn = os.environ.get("PGRETRY_TEST_DSN") or os.environ.get("PGSHIELD_TEST_DSN")
+    dsn = os.environ.get("PGRETRY_TEST_DSN")
     if not dsn:
         print("Error: PGRETRY_TEST_DSN environment variable is not set.", file=sys.stderr)
         print(

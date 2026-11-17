@@ -74,7 +74,6 @@ def _wrap_with_runner(
         return await runner.run(functools.partial(target_fn, *args, **kwargs))
 
     setattr(wrapper, "__pgretry_runner__", runner)
-    setattr(wrapper, "__pgshield_runner__", runner)  # Backwards compatibility alias
     return wrapper
 
 

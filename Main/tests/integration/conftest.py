@@ -13,9 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 @pytest.fixture
 def pg_dsn() -> str:
     """Provide the PostgreSQL test DSN from environment or skip if unavailable."""
-    dsn = os.environ.get("PGRETRY_TEST_DSN") or os.environ.get("PGSHIELD_TEST_DSN")
-    if not dsn:
+    if "PGRETRY_TEST_DSN" not in os.environ:
         pytest.skip("PGRETRY_TEST_DSN not set; skipping integration tests")
+
+    dsn = os.environ["PGRETRY_TEST_DSN"]
 
     # Verify reachability
     async def _test_reachability() -> None:
