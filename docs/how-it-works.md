@@ -7,7 +7,7 @@
 * **A whole-transaction retry orchestrator:** Ensures that when a retryable PostgreSQL concurrency error occurs, the failed transaction is cleanly rolled back, delayed with randomized backoff, and the entire business logic callable is re-executed from the very beginning.
 * **A SQLSTATE classification engine:** Distinguishes transient concurrency aborts (`40001`, `40P01`) from permanent data and constraint errors (`23505`, `23503`, `42P01`).
 * **An observability engine for PostgreSQL concurrency:** Inspects PostgreSQL runtime state (`pg_stat_activity`, `pg_locks`, lock blocking graphs) when transactions fail or on demand.
-* **A zero-dependency core library:** The core retry and transaction engine requires only Python 3.13+ standard library components (`asyncio`, `contextvars`, `dataclasses`).
+* **A zero-dependency core library:** The core retry and transaction engine requires only Python 3.11+ standard library components (`asyncio`, `contextvars`, `dataclasses`).
 
 ### What PGRetry Is NOT
 

@@ -4,7 +4,7 @@ This guide covers setting up your development environment, executing the test su
 
 ## Prerequisites
 
-- **Python 3.13+**: Required runtime environment.
+- **Python 3.11+**: Supported runtime environment (Python 3.11, 3.12, and 3.13+).
 - **Poetry**: Dependency and virtual environment manager (`poetry >= 2.0`).
 - **Docker & Docker Compose** (optional): For running integration tests via the compose workflow.
 
@@ -62,7 +62,7 @@ GitHub Actions runs five distinct jobs on every push and pull request:
 
 - **lint**: Enforces code style, import sorting, and line length via `ruff check .` and formatting.
 - **type-check**: Enforces strict static type checking with `mypy src/pgretry`.
-- **unit**: Runs all unit tests (`pytest -q`) in an isolated Python 3.13 environment without database dependencies.
+- **unit**: Runs all unit tests (`pytest -q`) across isolated Python 3.11, 3.12, and 3.13 environments without database dependencies.
 - **integration**: Runs integration tests (`pytest -q -m integration`) against a native GitHub Actions PostgreSQL 16 service container.
 - **compose**: Verifies `docker-compose.yml` startup, validates healthchecks, runs integration tests against the compose cluster, and tears down the stack.
 
