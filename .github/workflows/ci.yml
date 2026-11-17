@@ -58,11 +58,11 @@ jobs:
         run: poetry run mypy src/pgretry
 
   unit:
-    name: Unit Tests
+    name: Unit Tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
     defaults:
       run:
         working-directory: Main
