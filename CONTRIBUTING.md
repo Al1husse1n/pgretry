@@ -82,7 +82,7 @@ This creates `dist/pgretry-<version>.tar.gz` (sdist) and `dist/pgretry-<version>
 ## Publishing Releases
 
 PGRetry releases are automated through GitHub Actions:
-- **TestPyPI**: Pushes with version tags (`v*`) or manual triggers via `workflow_dispatch` invoke `.github/workflows/publish.yml` to build the distribution and publish artifacts to [TestPyPI](https://test.pypi.org/project/pgretry/) via Trusted Publishing.
+- **PyPI**: Pushes with version tags (`v*`) or manual triggers via `workflow_dispatch` invoke `.github/workflows/publish.yml` to build the distribution and publish artifacts to [PyPI](https://pypi.org/project/pgretry/) via Trusted Publishing.
 
 ## Definition of Done for a PR
 
